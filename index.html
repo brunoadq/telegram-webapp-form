@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Formulario Telegram WebApp</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    html, body { margin:0; padding:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji'; }
+    .wrap { max-width: 520px; margin: 0 auto; padding: 16px 20px 40px; }
+    h1 { font-size: 20px; margin: 8px 0 16px; }
+    .card { background: rgba(0,0,0,0.03); border-radius: 12px; padding:16px; }
+    label { display:block; font-size: 14px; margin: 10px 0 6px; }
+    input, select { width:100%; padding:10px 12px; font-size:16px; border:1px solid #ccc; border-radius:10px; outline:none; }
+    input:focus, select:focus { border-color:#888; }
+    button { width:100%; margin-top:16px; padding:12px 14px; font-size:16px; border:0; border-radius:12px; cursor:pointer; }
+    .hint { font-size:12px; color:#666; margin-top:6px; }
+    .row { display:flex; gap:12px; }
+    .col { flex:1; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Registro de Producción</h1>
+    <div class="card">
+      <label for="fecha">Fecha</label>
+      <input id="fecha" type="date" required />
+
+      <label for="litros">Litros producidos</label>
+      <input id="litros" type="number" min="0" max="5000" step="0.1" placeholder="Ej: 123.4" required />
+
+      <div class="row">
+        <div class="col">
+          <label for="lecheria">Lechería</label>
+          <select id="lecheria" required>
+            <option value="" selected disabled>Selecciona…</option>
+            <option>Central</option>
+            <option>Norte</option>
+            <option>Sur</option>
+          </select>
+        </div>
+        <div class="col">
+          <label for="operario">Operario</label>
+          <input id="operario" type="text" placeholder="Ej: Juan Pérez" required />
+        </div>
+      </div>
+
+      <div class="hint">Los datos se enviarán de forma segura a tu flujo en n8n.</div>
+      <button id="enviar">Enviar</button>
+    </div>
+  </div>
+
+  <script>
+    // === Configuración mínima ===
+    const CONFIG = {
+      // Modo recomendado para principiantes: enviar datos de vuelta al bot (evita CORS)
+      mode: "telegram", // "telegram" | "webhook"
+      // Si eliges "webhook", pon aquí la URL de tu Webhook de n8n:
+      webhookUrl: "https://TU-DOMINIO-N8N/webhook/telegram-form"
+    };
+
+    const tg = window.Telegram ? window.Telegram.WebApp : null;
+
+    function initTelegramUI() {
+      if (!tg) return;
+      tg.ready();
+      tg.expand(); // ocupa toda la altura disponible
+
+      // Opcional: adapta colores al tema del cliente Telegram
+      const tp = tg.themeParams || {};
+      document.body.style.background = tp.bg_color ? tp.bg_color : '#ffffff';
+      const buttons = document.querySelectorAll('button');
+      buttons.forEach(b => {
+        b.style.background = tp.button_color ? tp.button_color : '#2ea043';
+        b.style.color = tp.button_text_color ? tp.button_text_color : '#ffffff';
+      });
+    }
+
+    function getTodayYYYYMMDD() {
+      const d = new Date();
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function getPayload() {
+      const fecha = document.getElementById('fecha').value;
+      const litros = parseFloat(document.getElementById('litros').value);
+      const lecheria = document.getElementById('lecheria').value;
+      const operario = document.getElementById('operario').value.trim();
+
+      const user = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
+
+      return {
+        fecha,
+        litros,
+        lecheria,
+        operario,
+        client_timestamp: new Date().toISOString(),
+        telegram_user: user ? {
+          id: user.id, username: user.username, first_name: user.first_name, last_name: user.last_name, language_code: user.language_code
+        } : null,
+        telegram_chat: (tg && tg.initDataUnsafe && tg.initDataUnsafe.chat) ? tg.initDataUnsafe.chat : null,
+        // initData permite verificación en backend si lo necesitas
+        telegram_initData: tg ? tg.initData : null
+      };
+    }
+
+    function validate(payload) {
+      if (!payload.fecha) return 'La fecha es obligatoria';
+      if (!Number.isFinite(payload.litros) || payload.litros < 0 || payload.litros > 5000) return 'Litros fuera de rango (0–5000)';
+      if (!payload.lecheria) return 'Selecciona la lechería';
+      if (!payload.operario) return 'Ingresa el nombre del operario';
+      return null;
+    }
+
+    async function sendToWebhook(payload) {
+      const resp = await fetch(CONFIG.webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        // Importante: los webhooks de n8n deberían permitir CORS si llamamos desde el navegador
+        // Configura en n8n el Webhook node con cabeceras:
+        // Access-Control-Allow-Origin: *
+        // Access-Control-Allow-Headers: *
+      });
+      return resp;
+    }
+
+    async function onSubmit() {
+      const payload = getPayload();
+      const err = validate(payload);
+      if (err) { alert(err); return; }
+
+      try {
+        if (CONFIG.mode === 'webhook') {
+          const r = await sendToWebhook(payload);
+          if (!r.ok) throw new Error('Webhook respondió ' + r.status);
+          alert('Datos enviados a n8n ✔');
+        } else {
+          if (!tg) throw new Error('Telegram WebApp no disponible');
+          tg.sendData(JSON.stringify(payload)); // se envía al bot como web_app_data
+          tg.close(); // cierra el Web App (opcional)
+        }
+      } catch (e) {
+        alert('Error al enviar: ' + (e && e.message ? e.message : e));
+        console.error(e);
+      }
+    }
+
+    document.getElementById('enviar').addEventListener('click', onSubmit);
+    document.getElementById('fecha').value = getTodayYYYYMMDD();
+    initTelegramUI();
+  </script>
+</body>
+</html>
