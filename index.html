@@ -5,56 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Test Telegram WebApp</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      padding: 40px;
-      background: #f9f9f9;
-    }
-    button {
-      padding: 15px 25px;
-      font-size: 18px;
-      border: none;
-      border-radius: 10px;
-      background: #2ea043;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #238636;
-    }
-  </style>
 </head>
 <body>
-  <h1>Prueba de WebApp</h1>
-  <p>Pulsa el botón para enviar datos de prueba al bot.</p>
-  <button id="enviar">Enviar test</button>
+  <h1>Prueba WebApp</h1>
+  <button onclick="sendData()">Enviar test</button>
 
   <script>
     const tg = window.Telegram.WebApp;
 
-    function onSubmit() {
-      const payload = {
-        test: "funciona",
-        fecha: new Date().toISOString()
-      };
-
-      alert("Enviando: " + JSON.stringify(payload)); // debug visual
-      tg.sendData(JSON.stringify(payload)); // 👈 aquí se envía al bot
-      tg.close(); // opcional: cierra el formulario después de enviar
+    function sendData() {
+      const payload = { test: "funciona", fecha: new Date().toISOString() };
+      alert("Enviando: " + JSON.stringify(payload)); // debug
+      tg.sendData(JSON.stringify(payload));
+      tg.close();
     }
-
-    document.getElementById("enviar").addEventListener("click", onSubmit);
-
-    function onSubmit() {
-  const payload = { test: "funciona", fecha: new Date().toISOString() };
-  alert("Enviando: " + JSON.stringify(payload)); // Debug
-  tg.sendData(JSON.stringify(payload));
-  tg.close();
-}
-document.getElementById("enviar").addEventListener("click", onSubmit);
-
   </script>
 </body>
 </html>
+
