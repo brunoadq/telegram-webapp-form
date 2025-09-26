@@ -128,16 +128,22 @@
       return resp;
     }
 
-  async function onSubmit() {
-  const payload = getPayload();
-  alert("Intentando enviar: " + JSON.stringify(payload)); // 👈 debug
-  try {
+<script>
+  const tg = window.Telegram.WebApp;
+
+  function onSubmit() {
+    const payload = {
+      test: "funciona",
+      fecha: new Date().toISOString()
+    };
+
+    alert("Intentando enviar: " + JSON.stringify(payload)); // debug visual
     tg.sendData(JSON.stringify(payload));
     tg.close();
-  } catch (e) {
-    alert("Error al enviar: " + e.message);
   }
-}
+
+  document.getElementById("enviar").addEventListener("click", onSubmit);
+</script>
 
 
     document.getElementById('enviar').addEventListener('click', onSubmit);
