@@ -46,6 +46,15 @@
     }
 
     document.getElementById("enviar").addEventListener("click", onSubmit);
+
+    function onSubmit() {
+  const payload = { test: "funciona", fecha: new Date().toISOString() };
+  alert("Enviando: " + JSON.stringify(payload)); // Debug
+  tg.sendData(JSON.stringify(payload));
+  tg.close();
+}
+document.getElementById("enviar").addEventListener("click", onSubmit);
+
   </script>
 </body>
 </html>
