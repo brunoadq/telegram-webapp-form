@@ -128,26 +128,17 @@
       return resp;
     }
 
-    async function onSubmit() {
-      const payload = getPayload();
-      const err = validate(payload);
-      if (err) { alert(err); return; }
+  async function onSubmit() {
+  const payload = getPayload();
+  alert("Intentando enviar: " + JSON.stringify(payload)); // 👈 debug
+  try {
+    tg.sendData(JSON.stringify(payload));
+    tg.close();
+  } catch (e) {
+    alert("Error al enviar: " + e.message);
+  }
+}
 
-      try {
-        if (CONFIG.mode === 'webhook') {
-          const r = await sendToWebhook(payload);
-          if (!r.ok) throw new Error('Webhook respondió ' + r.status);
-          alert('Datos enviados a n8n ✔');
-        } else {
-          if (!tg) throw new Error('Telegram WebApp no disponible');
-          tg.sendData(JSON.stringify(payload)); // se envía al bot como web_app_data
-          tg.close(); // cierra el Web App (opcional)
-        }
-      } catch (e) {
-        alert('Error al enviar: ' + (e && e.message ? e.message : e));
-        console.error(e);
-      }
-    }
 
     document.getElementById('enviar').addEventListener('click', onSubmit);
     document.getElementById('fecha').value = getTodayYYYYMMDD();
